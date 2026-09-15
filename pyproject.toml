@@ -1,0 +1,19 @@
+[project]
+name = "expense-tracker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Fridtjof Pernack" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "paddleocr>=3.7.0",
+]
+
+[project.scripts]
+expense-tracker = "expense_tracker:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
