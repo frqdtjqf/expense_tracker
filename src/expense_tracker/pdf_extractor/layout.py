@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from paddle.static import data
 
-from .helper import load_json_file, save_json_file, load_image, save_image
+from ..helper import load_json_file, save_json_file, load_image, save_image
 
 
 @dataclass
@@ -284,7 +284,7 @@ def parse_ocr_table(rows: list[list[OcrElement]]) -> dict:
     return data
 
 
-def generate_layout(ocr_data: dict, output_json: Path, debug: bool = False, output_image: Path | None = None, save_layout: bool = True) -> dict:
+def generate_layout(ocr_data: dict, output_json: Path | None = None, debug: bool = False, output_image: Path | None = None) -> dict:
 
     elements = load_ocr_elements(ocr_data)
 
@@ -305,7 +305,7 @@ def generate_layout(ocr_data: dict, output_json: Path, debug: bool = False, outp
         )
 
     data = parse_ocr_table(rows)
-    if save_layout:
+    if output_json is not None:
         save_json_file(
             data,
             output_json,
