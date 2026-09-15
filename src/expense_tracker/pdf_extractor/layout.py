@@ -28,52 +28,18 @@ def load_ocr_elements(data: dict) -> list[OcrElement]:
     ]
 
 
-def parse_ocr_table(rows: list[list[OcrElement]]) -> dict:
-    """Serialize grouped OCR rows into plain Python data."""
-
-    return {
-        "rows": [
-            {
-                "row": row_index,
-                "elements": [
-                    {
-                        "index": element.index,
-                        "text": element.text,
-                        "confidence": element.confidence,
-                        "polygon": [
-                            [x, y]
-                            for x, y in element.polygon
-                        ],
-                        "min_x": element.min_x,
-                        "max_x": element.max_x,
-                        "min_y": element.min_y,
-                        "max_y": element.max_y,
-                        "center_x": element.center_x,
-                        "center_y": element.center_y,
-                    }
-                    for element in row
-                ],
-            }
-            for row_index, row in enumerate(rows)
-        ]
-    }
-
-
 def generate_page_layout(
     page_data: dict,
     tolerance_factor: float = 0.5,
 ) -> dict:
-    """Build rows and a complete cell grid for one PDF page."""
+    """Build a complete cell grid for one PDF page."""
 
     elements = load_ocr_elements(page_data)
-    rows = group_into_rows(elements, tolerance_factor)
-    cells = build_cell_grid(rows, tolerance_factor)
+    cells = build_cell_grid(elements, tolerance_factor)
 
     return {
         "page": page_data["page"],
         "image_size": page_data.get("image_size"),
-        "rows": parse_ocr_table(rows)["rows"],
-        "columns": len(cells[0]) if cells else 0,
         "cells": cells,
     }
 
@@ -113,6 +79,5 @@ __all__ = [
     "group_into_rows",
     "layout_to_table",
     "load_ocr_elements",
-    "parse_ocr_table",
     "print_layout_table",
 ]

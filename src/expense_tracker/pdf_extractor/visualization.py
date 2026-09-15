@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import cv2
 import numpy as np
 
@@ -8,30 +9,39 @@ from ..helper import save_image
 def layout_to_table(layout_data: dict) -> str:
     """Convert layout data into a readable text table."""
 
-    headers = ["Page", "Row", "Index", "Text", "Confidence", "Box"]
+    headers = [
+        "Page",
+        "Row",
+        "Column",
+        "Span",
+        "Index",
+        "Text",
+        "Confidence",
+    ]
     table_rows = []
 
     for page in layout_data["pages"]:
-        for row in page["rows"]:
-            for element in row["elements"]:
-                box = element.get("box")
-                if box is None:
-                    box_text = (
-                        f"({element['min_x']},{element['min_y']})-"
-                        f"({element['max_x']},{element['max_y']})"
-                    )
-                else:
-                    box_text = (
-                        f"({box['x1']},{box['y1']})-"
-                        f"({box['x2']},{box['y2']})"
-                    )
+        for row_index, cells in enumerate(page.get("cells", [])):
+            for column_index, cell in enumerate(cells):
+                if cell is None:
+                    table_rows.append([
+                        str(page["page"]),
+                        str(row_index),
+                        str(column_index),
+                        "1",
+                        "",
+                        "",
+                        "",
+                    ])
+                    continue
                 table_rows.append([
                     str(page["page"]),
-                    str(row["row"]),
-                    str(element["index"]),
-                    element["text"],
-                    f"{element['confidence']:.2f}",
-                    box_text,
+                    str(cell["row"]),
+                    str(cell["column"]),
+                    str(cell["column_span"]),
+                    str(cell["index"]),
+                    cell["text"],
+                    f"{cell['confidence']:.2f}",
                 ])
 
     if not table_rows:
@@ -73,7 +83,7 @@ def create_abstract_layout_images(
 
     for page in layout_data["pages"]:
         grid_rows = page.get("cells", [])
-        column_count = int(page.get("columns", 0))
+        column_count = max((len(row) for row in grid_rows), default=0)
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.65
         thickness = 1

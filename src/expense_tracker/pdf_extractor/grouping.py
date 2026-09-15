@@ -63,12 +63,15 @@ def group_into_columns(
 
 
 def build_cell_grid(
-    rows: list[list[OcrElement]],
+    elements: list[OcrElement],
     tolerance_factor: float = 0.5,
 ) -> list[list[dict | None]]:
-    """Build a complete row/column grid, including spanning cells."""
+    """Build a complete grid by grouping elements into rows and columns."""
 
-    elements = [element for row in rows for element in row]
+    rows = group_into_rows(
+        elements,
+        tolerance_factor,
+    )
     columns = group_into_columns(elements, tolerance_factor)
     column_centers = [
         sum(element.center_x for element in column) / len(column)
