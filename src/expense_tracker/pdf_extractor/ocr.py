@@ -1,8 +1,4 @@
-from __future__ import annotations
-
-import json
 from pathlib import Path
-
 import cv2
 import numpy as np
 import pypdfium2 as pdfium
@@ -12,6 +8,7 @@ from paddleocr import PaddleOCR
 INPUT_PDF = Path("data/receipts/image3.pdf")
 MAX_IMAGE_SIZE = 4000
 PDF_RENDER_SCALE = 4
+DEFAULT_CONFIDENCE_THRESHOLD = 0.9
 
 
 def render_pdf_page(
@@ -51,8 +48,11 @@ def preprocess_image(
     )
 
 
-def extract_elements(data: dict) -> list[dict]:
-    """Convert one PaddleOCR result into plain Python data."""
+def extract_elements(
+    data: dict,
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+) -> list[dict]:
+    """Convert one PaddleOCR result and blank low-confidence text."""
 
     result_data = data["res"]
     elements = []
@@ -65,11 +65,18 @@ def extract_elements(data: dict) -> list[dict]:
             result_data["rec_polys"],
         )
     ):
+        confidence = float(score)
+        output_text = (
+            str(text)
+            if confidence >= confidence_threshold
+            else ""
+        )
+
         elements.append(
             {
                 "index": index,
-                "text": str(text),
-                "confidence": float(score),
+                "text": output_text,
+                "confidence": confidence,
                 "box": {
                     "x1": int(box[0]),
                     "y1": int(box[1]),
@@ -86,11 +93,19 @@ def extract_elements(data: dict) -> list[dict]:
     return elements
 
 
-def pdf_to_ocr_dict(input_path: Path) -> dict:
+def pdf_to_ocr_dict(
+    input_path: Path,
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+) -> dict:
     """Render every PDF page and return its OCR results as a dictionary."""
 
     if not input_path.exists():
         raise FileNotFoundError(f"PDF not found: {input_path}")
+
+    if not 0.0 <= confidence_threshold <= 1.0:
+        raise ValueError(
+            "confidence_threshold must be between 0.0 and 1.0"
+        )
 
     ocr = PaddleOCR(
         lang="german",
@@ -108,7 +123,10 @@ def pdf_to_ocr_dict(input_path: Path) -> dict:
             )
             results = ocr.predict(image)
             result = next(iter(results))
-            elements = extract_elements(result.json)
+            elements = extract_elements(
+                result.json,
+                confidence_threshold=confidence_threshold,
+            )
 
             pages.append(
                 {
@@ -125,6 +143,7 @@ def pdf_to_ocr_dict(input_path: Path) -> dict:
 
     return {
         "source_pdf": str(input_path),
+        "confidence_threshold": confidence_threshold,
         "page_count": len(pages),
         "pages": pages,
     }

@@ -13,6 +13,7 @@ def save_json_file(data: dict, file_path: Path) -> None:
     import json
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+    print(f"Saved JSON file: {file_path}")
 
 def load_image(file_path: Path):
     """Load an image from a file path."""
@@ -32,3 +33,4 @@ def save_image(image, output_path: Path) -> None:
         str(output_path),
         image,
     )
+    print(f"Saved image: {output_path}")
