@@ -73,6 +73,25 @@ def load_ocr_elements(data: dict) -> list[OcrElement]:
     return elements
 
 
+def generate_page_layout(
+    page_data: dict,
+    tolerance_factor: float = 0.5,
+) -> dict:
+    """Group the OCR elements of one PDF page into rows."""
+
+    elements = load_ocr_elements(page_data)
+    rows = group_into_rows(
+        elements,
+        tolerance_factor=tolerance_factor,
+    )
+
+    return {
+        "page": page_data["page"],
+        "image_size": page_data.get("image_size"),
+        "rows": parse_ocr_table(rows)["rows"],
+    }
+
+
 def vertical_distance(a: OcrElement, b: OcrElement) -> float:
     """
     Vertical distance between two OCR elements.
@@ -285,26 +304,37 @@ def parse_ocr_table(rows: list[list[OcrElement]]) -> dict:
 
 
 def generate_layout(ocr_data: dict, output_json: Path | None = None, debug: bool = False, output_image: Path | None = None) -> dict:
+    pages = []
 
-    elements = load_ocr_elements(ocr_data)
+    for page_data in ocr_data["pages"]:
+        page_layout = generate_page_layout(page_data)
+        pages.append(page_layout)
 
-    rows = group_into_rows(
-        elements,
-        tolerance_factor=0.5,
-    )
+        if debug:
+            rows = [
+                [
+                    OcrElement(
+                        index=element["index"],
+                        text=element["text"],
+                        confidence=element["confidence"],
+                        polygon=[
+                            (point[0], point[1])
+                            for point in element["polygon"]
+                        ],
+                        box=element.get("box"),
+                    )
+                    for element in row["elements"]
+                ]
+                for row in page_layout["rows"]
+            ]
+            print_layout(rows)
 
-    if debug:
-        print_layout(rows)
+    data = {
+        "source_pdf": ocr_data["source_pdf"],
+        "page_count": ocr_data["page_count"],
+        "pages": pages,
+    }
 
-        image_path = Path(ocr_data.get("image_path", "unknown_image.png"))
-        if output_image is None: output_image = Path("debug_layout.png")
-        draw_layout(
-            image_path,
-            rows,
-            output_image,
-        )
-
-    data = parse_ocr_table(rows)
     if output_json is not None:
         save_json_file(
             data,
